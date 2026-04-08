@@ -13,22 +13,13 @@
     "@scure/bip32": "^2.0.1",
     "@types/uuid": "^11.0.0",
     "@types/ws": "^8.18.1",
-    "@workspace/api-zod": "workspace:*",
-    "@workspace/db": "workspace:*",
-    "bip39": "^3.1.0",
-    "compression": "^1.8.1",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2",
-    "drizzle-orm": "catalog:",
-    "express": "^5",
-    "express-rate-limit": "^8.3.2",
-    "helmet": "^8.1.0",
-    "ioredis": "^5.10.1",
-    "pino": "^9",
-    "pino-http": "^10",
-    "uuid": "^13.0.0",
-    "ws": "^8.20.0",
-    "zod": "catalog:"
+    "dependencies": {
+  "zod": "^3.23.0",
+  "drizzle-orm": "^0.30.0",
+  "fastify": "^4",
+  "uuid": "^13.0.0",
+  "ws": "^8.20.0"
+    }
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
