@@ -1,0 +1,78 @@
+FROM node:24-alpine AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml tsconfig.json tsconfig.base.json ./
+
+COPY lib/db/package.json ./lib/db/
+COPY lib/db/tsconfig.json ./lib/db/
+COPY lib/db/src ./lib/db/src/
+
+COPY lib/api-spec/package.json ./lib/api-spec/
+COPY lib/api-spec/openapi.yaml ./lib/api-spec/
+COPY lib/api-spec/orval.config.ts ./lib/api-spec/
+
+COPY lib/api-zod/package.json ./lib/api-zod/
+COPY lib/api-zod/tsconfig.json ./lib/api-zod/
+COPY lib/api-zod/src ./lib/api-zod/src/
+
+COPY lib/api-client-react/package.json ./lib/api-client-react/
+COPY lib/api-client-react/tsconfig.json ./lib/api-client-react/
+COPY lib/api-client-react/src ./lib/api-client-react/src/
+
+COPY scripts/package.json ./scripts/
+COPY scripts/tsconfig.json ./scripts/
+COPY scripts/src ./scripts/src/
+COPY scripts/post-merge.sh ./scripts/
+
+COPY artifacts/api-server/package.json ./artifacts/api-server/
+COPY artifacts/api-server/tsconfig.json ./artifacts/api-server/
+COPY artifacts/api-server/build.mjs ./artifacts/api-server/
+COPY artifacts/api-server/src ./artifacts/api-server/src/
+
+COPY artifacts/ixcoin/package.json ./artifacts/ixcoin/
+COPY artifacts/ixcoin/tsconfig.json ./artifacts/ixcoin/
+COPY artifacts/ixcoin/vite.config.ts ./artifacts/ixcoin/
+COPY artifacts/ixcoin/index.html ./artifacts/ixcoin/
+COPY artifacts/ixcoin/components.json ./artifacts/ixcoin/
+COPY artifacts/ixcoin/src ./artifacts/ixcoin/src/
+COPY artifacts/ixcoin/public ./artifacts/ixcoin/public/
+
+FROM base AS deps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts
+
+FROM deps AS build
+
+RUN NODE_ENV=production pnpm --filter @workspace/api-server run build
+
+RUN BASE_PATH=/ PORT=3000 pnpm --filter @workspace/ixcoin run build
+
+FROM node:24-alpine AS production
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml ./
+COPY lib/db/package.json ./lib/db/
+COPY artifacts/api-server/package.json ./artifacts/api-server/
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/lib/db/node_modules ./lib/db/node_modules 2>/dev/null || true
+COPY --from=deps /app/artifacts/api-server/node_modules ./artifacts/api-server/node_modules 2>/dev/null || true
+
+COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
+COPY --from=build /app/artifacts/ixcoin/dist/public ./public
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
