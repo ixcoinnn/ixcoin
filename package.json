@@ -1,5 +1,5 @@
 {
-  "name": "api-server",
+  "name": "app",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
@@ -7,9 +7,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "fastify": "^4.0.0",
-    "uuid": "^13.0.0",
-    "ws": "^8.20.0",
-    "zod": "^3.23.0"
+    "fastify": "^4"
   }
 }
